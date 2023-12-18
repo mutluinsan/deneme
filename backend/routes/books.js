@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 
-const { getAllBooks, getBook, addBook, updateBook, deleteBook } = require('../controllers/books')
+const { getAllBooks, getBook, addBook, updateBook, deleteBook } = require('../controller/books')
 
 /* router.get('/', getAllBooks)
 router.post('/', addBook)
