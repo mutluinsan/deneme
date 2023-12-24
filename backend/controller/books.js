@@ -35,7 +35,14 @@ const getBook = async (req, res) => {
 
 const addBook = async (req, res) => {
 
-    const newBook = { title: req.body.title, author: req.body.author, publishYear: req.body.publishYear }
+    const newBook = {   title: req.body.title, 
+                        author: req.body.author, 
+                        publishYear: req.body.publishYear,
+                        publisher: req.body.publisher,
+                        stock: req.body.stock,
+                        price: req.body.price,
+                        barcode: req.body.barcode
+                    }
     const book = await Book.create(newBook)
     return res.status(201).send({ message: "Başarılı", data: book })
 
