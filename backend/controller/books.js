@@ -1,24 +1,74 @@
 const Book = require('../models/Book.js')
 
+            //  PDF ÖDEV YAPIMI
+
 const getAllBooks = async (req, res) => {
-    //ÖDEV EKSTRALAR
-    //barkod, yayınevi, stok, fiyat  ---required
-    //ekstra kısıtlar --istediğiniz özelliklere ekleyin --max karakter vs.
+    try {
+        const { author, title, sort, fields, numericFilters } = req.query;
+        const queryObj = {}; 
 
+        if (author) {
+            queryObj.author = author;
+        }
 
-    //skip - atla demek
-    //limit - şu kadar göster demek
-    //query ile page ve limit alıp skip bunlarla hesaplatılıyor
-    const page = Number(req.query.page) || 1
-    const limit = Number(req.query.limit) || 10
-    const skip = (page - 1) * limit
+        if (title) {
+            const modifiedTitle = title.toLocaleLowerCase()
+                .replace(/i/gi, '[iİ]')
+                .replace(/ı/gi, '[ıI]');
 
-    console.log({ sayfa: page, limit: limit, atla: skip });
+            queryObj.title = { $regex: modifiedTitle, $options: 'i' };
+        }
 
-    const books = await Book.find({}).skip(skip).limit(limit);
-    return res.status(201).send({ message: "Başarılı", data: books, count: books.length })
+        if (numericFilters) {
+            const operatorMap = {
+                '>': '$gt',
+                '>=': '$gte',
+                '=': '$eq',
+                '<': '$lt',
+                '<=': '$lte',
+            };
 
-}
+            const regEx = /\b(<|>|>=|=|<|<=)\b/g;
+            let filters = numericFilters.replace(regEx, match => `-${operatorMap[match]}-`);
+
+            const options = ['price', 'stock'];
+
+            filters.split(',').forEach(item => {
+                const [field, operator, value] = item.split('-');
+                
+                if (options.includes(field)) {
+                    queryObj[field] = { [operator]: Number(value) };
+                }
+            });
+        }
+
+        let result = Book.find(queryObj);
+
+        if (sort) {
+            const sortList = sort.split(',').join(' ');
+            result = result.sort(sortList);
+        } else {
+            result = result.sort('createdAt');
+        }
+
+        if (fields) {
+            const fieldsList = fields.split(',').join(' ');
+            result = result.select(fieldsList);
+        }
+
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        result = result.skip(skip).limit(limit);
+        const books = await result;
+
+        return res.status(200).json({ message: 'başarılı arama kaydı!', data: books, count: books.length });
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({ message: 'Dahili sunucu hatası!' });
+    }
+};
 
 const getBook = async (req, res) => {
 
@@ -35,8 +85,8 @@ const getBook = async (req, res) => {
 
 const addBook = async (req, res) => {
 
-    const newBook = {   title: req.body.title, 
-                        author: req.body.author, 
+    const newBook = {   title: req.body.title,
+                        author: req.body.author,
                         publishYear: req.body.publishYear,
                         publisher: req.body.publisher,
                         stock: req.body.stock,
